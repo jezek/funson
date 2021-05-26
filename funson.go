@@ -166,7 +166,7 @@ func (e *EnviromentNode) processSliceFunc(name string, args ...interface{}) (int
 				inv = reflect.Append(inv, reflect.ValueOf(ri))
 				continue
 			}
-			return nil, fmt.Errorf("variadic argument %s type missmatch for function %s\ngot %v\nwant %v", name, reflect.TypeOf(ri), vaet)
+			return nil, fmt.Errorf("variadic argument type missmatch for function %s\ngot %v\nwant %v", name, reflect.TypeOf(ri), vaet)
 		}
 		inputs[i] = inv
 	}
