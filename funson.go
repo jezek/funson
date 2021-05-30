@@ -170,6 +170,7 @@ func (e *EnviromentNode) processSliceFunc(name string, args ...interface{}) (int
 		}
 		inputs[i] = inv
 	}
+	//TODO If function is not variadic, check if here are any leftover arguments and return error if any.
 
 	var resVal []reflect.Value
 	if t.IsVariadic() {

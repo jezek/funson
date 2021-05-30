@@ -47,6 +47,9 @@ func AddFun(name string, fun interface{}) error {
 }
 
 func init() {
+	AddFun("comment", func(en *EnviromentNode, _ ...interface{}) interface{} {
+		return Result{}
+	})
 	AddFun("if", func(en *EnviromentNode, cond bool, resTrue, resFalse interface{}) interface{} {
 		//log.Printf("if(cond: %#v, resTrue: %#v, resFalse: %#v)", cond, resTrue, resFalse)
 		unporcessedResut := resFalse

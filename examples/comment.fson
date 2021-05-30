@@ -1,0 +1,27 @@
+[ 1
+, 2.1
+, [ "!comment"
+  , "All arrays (like this) that have a string on first positions that begins with only one \"!\" and then some characters, are functions"
+  , "This function is a comment function. It's input can be any number of parameters of any type and results in nothing."
+  , { "note": "The comment function will just disappear from result" }
+  ]
+, true
+, "string"
+, { "key-1": "value-1"
+  , "key-2": [ "value-2.1"
+            , [ "!comment"
+              , "This comment is inside of an object/map (\"{...}\", so it will not be handled like function and remains here"
+              , "If you want to have an object/map in result use \"pairsToMap\" function (see maps.fson example)" 
+              , "Note: This behaviour may change, I have some ideas about parsing objects/maps"
+              ]
+            , "value-2.2"
+            ]
+  }
+, [ "another array", [ "!comment", "This comment isn't nested in object/map, so it will perish" ], 2, 3.5, false ]
+, null
+, [ "!add"
+  , 1
+  , [ "!comment", "Even this comment in function argument doesn't matter here" ]
+  , 2.3
+  ]
+]
