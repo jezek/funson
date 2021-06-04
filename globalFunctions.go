@@ -630,8 +630,8 @@ func choose(en *EnviromentNode, o map[string]interface{}) interface{} {
 	_options := o["options"].([]interface{})
 
 	if len(_options) == 0 {
-		if o["default"] != nil {
-			return o["default"]
+		if o["predefined"] != nil {
+			return o["predefined"]
 		}
 		return Result{}
 	}
@@ -687,7 +687,7 @@ func choose(en *EnviromentNode, o map[string]interface{}) interface{} {
 
 	if _, ok := o["question"]; !ok {
 		o["question"] = "Choose an option"
-		if o["default"] != nil {
+		if o["predefined"] != nil {
 			o["question"] = o["question"].(string) + " or don't"
 		}
 	} else if _, ok := o["question"].(string); !ok {
@@ -706,10 +706,10 @@ func choose(en *EnviromentNode, o map[string]interface{}) interface{} {
 		input = strings.TrimSpace(input)
 
 		if input == "" {
-			if o["default"] != nil {
-				defres, err := en.Process(o["default"])
+			if o["predefined"] != nil {
+				defres, err := en.Process(o["predefined"])
 				if err != nil {
-					panic(fmt.Sprintf("choose: processing default result failed: %s", err))
+					panic(fmt.Sprintf("choose: processing predefined result failed: %s", err))
 				}
 				return defres
 			}
