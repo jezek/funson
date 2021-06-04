@@ -24,4 +24,10 @@
   , [ "!comment", "Even this comment in function argument doesn't matter here" ]
   , 2.3
   ]
+, [ "!!comment"
+  , "This will stay in result, but with \"!comment\" in first field"
+  , "It's for the case you need an array in result with \"!\" on the first place in first field"
+  , "just duplicate the \"!\""
+  , [ "!!!other", "!See, only one \"!\" was trimmed", "!!Only in first string in array" ]
+  ]
 ]
