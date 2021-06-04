@@ -221,6 +221,7 @@ func (e *EnviromentNode) processSlice(in []interface{}) (interface{}, error) {
 }
 
 func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
+	//log.Printf("process: type: %s", reflect.TypeOf(in))
 	switch typedIn := in.(type) {
 	case []interface{}:
 		var res interface{}
@@ -258,8 +259,9 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 	case map[string]interface{}:
 		//return runMap(e.Copy(), typedIn)
 	case string:
+		//log.Printf("%s, %v\n", typedIn, e.Enviroment)
 		if t, ok := e.Enviroment["type"].(string); ok && t == "slice" {
-			if o, ok := e.Enviroment[":"].([]interface{}); ok && len(o) == 0 {
+			if o, ok := e.Enviroment["."].([]interface{}); ok && len(o) == 0 {
 				if len(typedIn) >= 2 && typedIn[0] == '!' && typedIn[1] == '!' {
 					//log.Printf("process: first string in array begins with \"!!\": %s", typedIn)
 					return typedIn[1:], nil
@@ -267,7 +269,6 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 			}
 		}
 	}
-	//log.Printf("process: type: %s", reflect.TypeOf(in))
 	return in, nil
 }
 
