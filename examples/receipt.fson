@@ -1,0 +1,118 @@
+["!pairsToMap"
+, ["receipt-id",  ["!input"
+              , {"type": "string"
+                ,"question": "Enter receipt id"
+                ,"validator": "^.{0,10}$"
+                ,"condition": "A string with maximum 10 digits"
+                }
+              ]
+  ]
+, ["datetime",  ["!split"
+                ,";"
+                , ["!input"
+                  , {"type": "datetime"
+                    ,"datetime-format-input": "2.1.06 15:4"
+                    ,"datetime-format-output": "02.01.2006;15:04"
+                    ,"question": "Enter date of issue"
+                    ,"predefined": ["!time.Format", ["!time.Now"], ["!env", ":datetime-format-input"]]
+                    }
+                  ]
+                ]
+  ]
+, ["date", ["!item", 0, ["!env", ":datetime"]]]
+, ["time", ["!replacePrefix", "0", " ", ["!item", 1, ["!env", ":datetime"]]]]
+, ["booth-id", ["!input"
+               , {"type": "integer"
+                 ,"question": "Enter booth id"
+                 ,"validator": "^\\d{0,2}$"
+                 ,"condition": "Whole number from 0 do 99, included"
+                 }
+               ]
+  ]
+, ["customer", ["!input", {"question": "Enter customer details"}]]
+, ["items"
+  , [ ["!choose"
+        , {"question": "Enter item number or leave blank for manual input"
+          ,"option-text": ["!env", ":name"]
+          ,"options":
+            [ {"name":"Item 1", "price": 1}
+            , {"name":"Item 2", "price": 1.5}
+            , {"name":"Item 3", "price": 2, "variant": true}
+            ]
+          ,"option-process":
+            ["!pairsToMap"
+            , ["name", ["!if"
+                       , ["!?env", "\\variant"]
+                       , ["!concat"
+                         , ["!env", "\\name"]
+                         , " VAR("
+                         , ["!input"
+                           , {"type":"string"
+                             ,"question": "Enter variant"
+                             ,"condition": "Whole number from 1 do 5, included"
+                             ,"validator": "^[1-5]$"
+                             }
+                           ]
+                         , ")"
+                         ]
+                       , ["!env", "\\name"]
+                       ]
+              ]
+            , ["amount", ["!input"
+                        , {"type": "float"
+                          ,"question": "Enter amount"
+                          ,"validator": "^[\\d]+[\\.\\d]*$"
+                          ,"condition": "Positive real number"
+                          }
+                        ]
+              ]
+            , ["price",  ["!input"
+                        , {"type": "float"
+                          ,"question": "Enter unit price"
+                          ,"validator": "^[\\d]+[\\.\\d]*$"
+                          ,"condition": "Positive real number"
+                          ,"predefined": ["!env", "\\price"]
+                          }
+                        ]
+              ]
+            , ["total", ["!mul", ["!env", ":amount"], ["!env", ":price"]]]
+            ]
+          ,"predefined":
+            ["!pairsToMap"
+            , ["name", ["!input", {"question": "Enter item name"}]]
+            , ["amount", ["!input"
+                        , {"type": "float"
+                          ,"question": "Enter amount"
+                          ,"validator": "^[\\d]+[\\.\\d]*$"
+                          ,"condition": "Positive real number"
+                          }
+                        ]
+              ]
+            , ["price",  ["!input"
+                        , {"type": "float"
+                          ,"question": "Enter unit price"
+                          ,"validator": "^[\\d]+[\\.\\d]*$"
+                          ,"condition": "Positive real number"
+                          }
+                        ]
+              ]
+            , ["total", ["!mul", ["!env", ":amount"], ["!env", ":price"]]]
+            ]
+          }
+        ]
+    ]
+  ]
+, ["grand-total", ["!sum", ["!env", ":items.total"]]]
+, ["tax-base", ["!div", ["!env", ":grand-total"], 1.18]]
+, ["tax-vat", ["!sub", ["!roundN", ["!env", ":grand-total"], 2], ["!roundN", ["!env", ":tax-base"], 2]]]
+, ["operator", ["!choose"
+              , {"question": "Choose operator number or leave blank for manual input"
+                ,"options": ["Operator"
+                            ,"Supervisor"
+                            ,"President"
+                            ]
+                ,"predefined": ["!input", {"question": "Enter operator"}]
+                }
+              ]
+  ]
+]
