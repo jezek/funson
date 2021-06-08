@@ -31,7 +31,22 @@
   ]
 , [ "customer", [ "!input", { "question": "Enter customer details" } ] ]
 , [ "items"
-  , [ [ "!choose"
+  , [ [ "!for"
+      , [ "!?or"
+        , [ "!?eq", [ "!env", "\\i" ], 0]
+        , [ "!?eq"
+          , [ "!input"
+            , { "type": "string"
+              , "question": "Add one more item y/n"
+              , "predefined": "n"
+              , "validator": "^[yn]$"
+              , "condition": "Lowercase letter y for yes or lowercase n for no"
+              }
+            ]
+          , "y"
+          ]
+        ]
+      , [ "!choose"
         , { "question": "Enter item number or leave blank for manual input"
           , "option-text": [ "!env", ":name" ]
           , "options":
@@ -100,6 +115,7 @@
             ]
           }
         ]
+      ]
     ]
   ]
 , [ "grand-total", [ "!sum", [ "!env", ":items.total" ] ] ]
