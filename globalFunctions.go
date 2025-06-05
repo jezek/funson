@@ -17,8 +17,6 @@ import (
 //used for variadic function results
 type Result []interface{}
 
-var functions map[string]interface{} = map[string]interface{}{}
-
 //Adds custom function "fun" to be used as "name" in funson
 //"fun" has to be in format:
 //		func(*funson.EnviromentNode, [arguments you want]) [your results]
@@ -46,10 +44,40 @@ func AddFun(name string, fun interface{}) error {
 	return nil
 }
 
+// Registered functions
+var functions map[string]interface{} = map[string]interface{}{}
+
+var availableFuns = []struct {
+	name                       string
+	input, output, description string
+	function                   interface{}
+}{
+	{
+		"comment", "Any number of parameters of any type.", "Returns nothing.",
+		"Does nothing. Doesn't even parse the parameters.",
+		func(en *EnviromentNode, _ ...interface{}) interface{} {
+			return Result{}
+		},
+	},
+	{
+		"print", "Any number of parameters of any type.", "Returns string.",
+		"Parses the parameters and the results are printed as JSON text strings to stderr separated by newline. The same string that is printed is returned.",
+		func(en *EnviromentNode, ps ...interface{}) string {
+			//TODO
+			return ""
+		},
+	},
+}
+
 func init() {
-	AddFun("comment", func(en *EnviromentNode, _ ...interface{}) interface{} {
-		return Result{}
-	})
+	for _, af := range availableFuns {
+		if err := AddFun(af.name, af.function); err != nil {
+			panic(err)
+		}
+	}
+
+	// For historic reason, to run receipt.* examples.
+	// Work in progress, functions below will be described and moved to availableFuns array, some will be modified.
 	AddFun("if", func(en *EnviromentNode, cond bool, resTrue, resFalse interface{}) interface{} {
 		//log.Printf("if(cond: %#v, resTrue: %#v, resFalse: %#v)", cond, resTrue, resFalse)
 		unporcessedResut := resFalse

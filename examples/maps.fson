@@ -1,0 +1,11 @@
+[ "!pairsToMap"
+, [ "key-1", "value-1" ]
+, [ "!comment", "This comment should perish" ]
+, "key-2": [ "value-2.1"
+          , [ "!comment"
+            , "This comment is inside of an object/map (\"{...}\", so it will not be handled like function and remains here"
+            , "If you want to have an object/map in result use \"pairsToMap\" function" 
+            ]
+          , "value-2.2"
+          ]
+}
