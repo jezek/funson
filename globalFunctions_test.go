@@ -15,6 +15,9 @@ func copyMap(src map[string]interface{}) map[string]interface{} {
 }
 
 func TestAddFun(t *testing.T) {
+	origFunctions := copyMap(functions)
+	defer func() { functions = origFunctions }()
+
 	dummy := func(en *EnviromentNode) {}
 	other := func(en *EnviromentNode) {}
 
