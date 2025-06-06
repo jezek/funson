@@ -2,6 +2,7 @@ package funson
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -92,6 +93,51 @@ func TestSliceFunc(t *testing.T) {
 			fn, a := sliceFunc(tc.input)
 			if fn != tc.fname || !reflect.DeepEqual(a, tc.args) {
 				t.Errorf("sliceFunc(%v) = (%q, %v), want (%q, %v)", tc.input, fn, a, tc.fname, tc.args)
+			}
+		})
+	}
+}
+
+func TestProcessSliceFunc(t *testing.T) {
+	origFunctions := copyMap(functions)
+	defer func() { functions = origFunctions }()
+
+	functions = map[string]interface{}{}
+
+	if err := AddFun("addTest", func(_ *EnviromentNode, a, b float64) float64 {
+		return a + b
+	}); err != nil {
+		t.Fatalf("AddFun(addTest) error = %v", err)
+	}
+
+	if err := AddFun("concatTest", func(_ *EnviromentNode, strs ...string) string {
+		return strings.Join(strs, "")
+	}); err != nil {
+		t.Fatalf("AddFun(concatTest) error = %v", err)
+	}
+
+	en := &EnviromentNode{Enviroment{}, nil}
+
+	tests := []struct {
+		name    string
+		fname   string
+		args    []interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{"add numbers", "addTest", []interface{}{float64(1), float64(2)}, Result{float64(3)}, false},
+		{"concat", "concatTest", []interface{}{"a", "b", "c"}, Result{"abc"}, false},
+		{"argument type mismatch", "addTest", []interface{}{"foo", float64(2)}, nil, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := en.processSliceFunc(tc.fname, tc.args...)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("processSliceFunc(%q) error = %v, wantErr %v", tc.fname, err, tc.wantErr)
+			}
+			if !tc.wantErr && !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("processSliceFunc(%q) = %#v, want %#v", tc.fname, got, tc.want)
 			}
 		})
 	}
