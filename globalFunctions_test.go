@@ -193,6 +193,65 @@ func TestPathFuncAndIsPathFunc(t *testing.T) {
 	}
 }
 
+func TestRound(t *testing.T) {
+	tests := []struct {
+		name  string
+		input float64
+		want  float64
+	}{
+		{"zero", 0, 0},
+		{"positive below half", 0.4, 0},
+		{"positive half", 0.5, 1},
+		{"positive above half", 1.5, 2},
+		{"positive below half integer", 1.4, 1},
+		{"negative above minus half", -0.4, 0},
+		{"negative half", -0.5, -1},
+		{"negative below half", -1.5, -2},
+		{"negative above half integer", -1.4, -1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := round(tc.input)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("round(%v) = %v, want %v", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRoundN(t *testing.T) {
+	rn, ok := functions["roundN"].(func(*EnviromentNode, float64, float64) float64)
+	if !ok {
+		t.Fatalf("roundN has unexpected type")
+	}
+	en := &EnviromentNode{Enviroment{}, nil}
+
+	tests := []struct {
+		name string
+		f    float64
+		n    float64
+		want float64
+	}{
+		{"n zero", 1.5, 0, 2},
+		{"n positive", 1.2345, 2, 1.23},
+		{"n positive round", 1.235, 2, 1.24},
+		{"n negative", 15.9, -1, 20},
+		{"n negative round", 149.9, -2, 100},
+		{"n positive negative value", -1.234, 2, -1.23},
+		{"n negative negative value", -45.6, -1, -50},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := rn(en, tc.f, tc.n)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("functions[\"roundN\"](%v, %v) = %v, want %v", tc.f, tc.n, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestStringRetype(t *testing.T) {
 	fixedTime := time.Date(2023, time.September, 18, 7, 45, 0, 0, time.UTC)
 	rfcTime := fixedTime.Format(time.RFC822)

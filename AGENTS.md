@@ -11,3 +11,4 @@ This project uses Go modules. When making changes:
 - Compare returned values and errors with `reflect.DeepEqual` as done in `globalFunctions_test.go`.
 - When a function returns both a result and an error, store expected values in `want` and `wantErr` fields, mirroring `TestPathFuncAndIsPathFunc`.
 - Use custom error types instead of `fmt.Errorf` when equality checks are required.
+- Place tests in the `*_test.go` file that corresponds to the source file and keep them in the same order as the functions they verify.
