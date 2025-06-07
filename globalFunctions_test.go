@@ -202,10 +202,14 @@ func TestRound(t *testing.T) {
 		{"zero", 0, 0},
 		{"positive below half", 0.4, 0},
 		{"positive half", 0.5, 1},
+		{"positive just below half", 0.49, 0},
+		{"positive just above half", 0.51, 1},
 		{"positive above half", 1.5, 2},
 		{"positive below half integer", 1.4, 1},
 		{"negative above minus half", -0.4, 0},
 		{"negative half", -0.5, -1},
+		{"negative just above half", -0.51, -1},
+		{"negative just below half", -0.49, 0},
 		{"negative below half", -1.5, -2},
 		{"negative above half integer", -1.4, -1},
 	}
@@ -240,6 +244,10 @@ func TestRoundN(t *testing.T) {
 		{"n negative round", 149.9, -2, 100},
 		{"n positive negative value", -1.234, 2, -1.23},
 		{"n negative negative value", -45.6, -1, -50},
+		{"n positive three decimals", 1.23456, 3, 1.235},
+		{"n negative three digits", 12345.6, -3, 12000},
+		{"n positive three decimals negative", -1.23456, 3, -1.235},
+		{"n negative three digits negative", -12345.6, -3, -12000},
 	}
 
 	for _, tc := range tests {
