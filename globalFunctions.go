@@ -14,14 +14,17 @@ import (
 	"github.com/mohae/deepcopy"
 )
 
-//used for variadic function results
+// used for variadic function results
 type Result []interface{}
 
-//Adds custom function "fun" to be used as "name" in funson
-//"fun" has to be in format:
-//		func(*funson.EnviromentNode, [arguments you want]) [your results]
-//or if number of results is variable, use
-//		func(*funson.EnviromentNode, [arguments you want]) funson.Result
+// Adds custom function "fun" to be used as "name" in funson
+// "fun" has to be in format:
+//
+//	func(*funson.EnviromentNode, [arguments you want]) [your results]
+//
+// or if number of results is variable, use
+//
+//	func(*funson.EnviromentNode, [arguments you want]) funson.Result
 func AddFun(name string, fun interface{}) error {
 	//fmt.Println("addFunc", name)
 	//defer fmt.Println("addFunc", name, "out")
@@ -439,6 +442,24 @@ func isPathFunc(i interface{}, path string) bool {
 	return false
 }
 
+type ErrorMapKeyMissing struct {
+	Key string
+	Map map[string]interface{}
+}
+
+func (e ErrorMapKeyMissing) Error() string {
+	return fmt.Sprintf("no %q in map[string]interface{}: %v", e.Key, e.Map)
+}
+
+type ErrorNoPath struct {
+	Key string
+	Val interface{}
+}
+
+func (e ErrorNoPath) Error() string {
+	return fmt.Sprintf("no %q in %#v", e.Key, e.Val)
+}
+
 func pathFunc(i interface{}, path string) (interface{}, error) {
 	if path == "" {
 		return i, nil
@@ -452,7 +473,7 @@ func pathFunc(i interface{}, path string) (interface{}, error) {
 	case map[string]interface{}:
 		ni, ok := it[head]
 		if !ok {
-			return nil, fmt.Errorf("no \"%s\" in map[string]interface{}: %v", head, it)
+			return nil, ErrorMapKeyMissing{Key: head, Map: it}
 		}
 		return pathFunc(ni, npath)
 	case []interface{}:
@@ -470,7 +491,7 @@ func pathFunc(i interface{}, path string) (interface{}, error) {
 		}
 		return res, nil
 	}
-	return nil, fmt.Errorf("no \"%s\" in %#v", head, i)
+	return nil, ErrorNoPath{Key: head, Val: i}
 }
 func round(f float64) float64 {
 	if f <= -0.5 {
