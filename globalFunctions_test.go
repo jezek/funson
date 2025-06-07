@@ -1,7 +1,9 @@
 package funson
 
 import (
+	"bufio"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -218,6 +220,84 @@ func TestStringRetype(t *testing.T) {
 			got, err := stringRetype(tc.typ, tc.input, tc.tf)
 			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
 				t.Fatalf("stringRetype(%q, %q) = (%v, %v), want (%v, %v)", tc.typ, tc.input, got, err, tc.want, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestInput(t *testing.T) {
+	en := &EnviromentNode{Enviroment{}, nil}
+	origReader := reader
+	defer func() { reader = origReader }()
+
+	tests := []struct {
+		name        string
+		readerInput string
+		options     map[string]interface{}
+		want        interface{}
+	}{
+		{
+			name:        "predefined used",
+			readerInput: "\n",
+			options:     map[string]interface{}{"type": "integer", "predefined": "42"},
+			want:        42,
+		},
+		{
+			name:        "validator retry",
+			readerInput: "xx\nabc\n",
+			options:     map[string]interface{}{"type": "string", "validator": "^[a-z]{3}$", "condition": "3 letters"},
+			want:        "abc",
+		},
+		{
+			name:        "float conversion",
+			readerInput: "3.14\n",
+			options:     map[string]interface{}{"type": "float"},
+			want:        float64(3.14),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			reader = bufio.NewReader(strings.NewReader(tc.readerInput))
+			got := input(en, tc.options)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("input(%v) = %#v, want %#v", tc.options, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestChoose(t *testing.T) {
+	en := &EnviromentNode{Enviroment{}, nil}
+	origReader := reader
+	defer func() { reader = origReader }()
+
+	tests := []struct {
+		name        string
+		readerInput string
+		options     map[string]interface{}
+		want        interface{}
+	}{
+		{
+			name:        "choose by number",
+			readerInput: "2\n",
+			options:     map[string]interface{}{"options": []interface{}{"a", "b", "c"}},
+			want:        "b",
+		},
+		{
+			name:        "default on empty",
+			readerInput: "\n",
+			options:     map[string]interface{}{"options": []interface{}{"x", "y"}, "predefined": "y"},
+			want:        "y",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			reader = bufio.NewReader(strings.NewReader(tc.readerInput))
+			got := choose(en, tc.options)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("choose(%v) = %#v, want %#v", tc.options, got, tc.want)
 			}
 		})
 	}
