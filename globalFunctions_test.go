@@ -106,3 +106,86 @@ func TestAddFun(t *testing.T) {
 		})
 	}
 }
+
+func TestPathFuncAndIsPathFunc(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    interface{}
+		path    string
+		want    interface{}
+		wantErr error
+	}{
+		{
+			name:    "map path",
+			data:    map[string]interface{}{"a": map[string]interface{}{"b": float64(42)}},
+			path:    "a.b",
+			want:    float64(42),
+			wantErr: nil,
+		},
+		{
+			name: "slice root",
+			data: []interface{}{
+				map[string]interface{}{"foo": float64(1)},
+				map[string]interface{}{"foo": float64(2)},
+			},
+			path:    "foo",
+			want:    Result{float64(1), float64(2)},
+			wantErr: nil,
+		},
+		{
+			name: "nested slice",
+			data: map[string]interface{}{
+				"list": []interface{}{
+					map[string]interface{}{"val": float64(5)},
+					map[string]interface{}{"val": float64(8)},
+				},
+			},
+			path:    "list.val",
+			want:    Result{float64(5), float64(8)},
+			wantErr: nil,
+		},
+		{
+			name:    "missing key",
+			data:    map[string]interface{}{"a": float64(1)},
+			path:    "b",
+			want:    nil,
+			wantErr: ErrorMapKeyMissing{Key: "b", Map: map[string]interface{}{"a": float64(1)}},
+		},
+		{
+			name:    "nested missing",
+			data:    map[string]interface{}{"a": map[string]interface{}{"b": float64(1)}},
+			path:    "a.c",
+			want:    nil,
+			wantErr: ErrorMapKeyMissing{Key: "c", Map: map[string]interface{}{"b": float64(1)}},
+		},
+		{
+			name: "slice missing",
+			data: []interface{}{
+				map[string]interface{}{"a": float64(1)},
+			},
+			path:    "b",
+			want:    nil,
+			wantErr: ErrorMapKeyMissing{Key: "b", Map: map[string]interface{}{"a": float64(1)}},
+		},
+		{
+			name:    "invalid type",
+			data:    float64(1),
+			path:    "foo",
+			want:    nil,
+			wantErr: ErrorNoPath{Key: "foo", Val: float64(1)},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := pathFunc(tc.data, tc.path)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("pathFunc(%v, %q) = (%v, %v), want (%v, %v)", tc.data, tc.path, got, err, tc.want, tc.wantErr)
+			}
+			is := isPathFunc(tc.data, tc.path)
+			if is != (tc.wantErr == nil) {
+				t.Errorf("isPathFunc(%v, %q) = %v, want %v", tc.data, tc.path, is, tc.wantErr == nil)
+			}
+		})
+	}
+}
