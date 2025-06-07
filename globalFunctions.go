@@ -507,6 +507,30 @@ type timeFormat struct {
 	input, output string
 }
 
+type ErrorNotNumber struct {
+	Input string
+}
+
+func (e ErrorNotNumber) Error() string {
+	return fmt.Sprintf("\"%s\" is not a number", e.Input)
+}
+
+type ErrorNotInteger struct {
+	Input string
+}
+
+func (e ErrorNotInteger) Error() string {
+	return fmt.Sprintf("\"%s\" is not an integer", e.Input)
+}
+
+type ErrorInvalidDate struct {
+	Input, Format string
+}
+
+func (e ErrorInvalidDate) Error() string {
+	return fmt.Sprintf("\"%s\" is not a date in format \"%s\"", e.Input, e.Format)
+}
+
 func stringRetype(_type, input string, datetimeFormat timeFormat) (interface{}, error) {
 	switch _type {
 	case "string":
@@ -514,19 +538,19 @@ func stringRetype(_type, input string, datetimeFormat timeFormat) (interface{}, 
 	case "float":
 		inputFloat, err := strconv.ParseFloat(input, 64)
 		if err != nil {
-			return nil, fmt.Errorf("\"%s\" is not a number", input)
+			return nil, ErrorNotNumber{Input: input}
 		}
 		return inputFloat, nil
 	case "integer":
 		inputInt, err := strconv.Atoi(input)
 		if err != nil {
-			return nil, fmt.Errorf("\"%s\" is not an integer", input)
+			return nil, ErrorNotInteger{Input: input}
 		}
 		return inputInt, nil
 	case "datetime":
 		t, err := time.Parse(datetimeFormat.input, input)
 		if err != nil {
-			return nil, fmt.Errorf("\"%s\" is not a date in format \"%s\"", input, datetimeFormat.input)
+			return nil, ErrorInvalidDate{Input: input, Format: datetimeFormat.input}
 		}
 		return t.Format(datetimeFormat.output), nil
 	}

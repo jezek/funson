@@ -3,6 +3,7 @@ package funson
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 // copyMap returns a shallow copy of the provided map.
@@ -185,6 +186,38 @@ func TestPathFuncAndIsPathFunc(t *testing.T) {
 			is := isPathFunc(tc.data, tc.path)
 			if is != (tc.wantErr == nil) {
 				t.Errorf("isPathFunc(%v, %q) = %v, want %v", tc.data, tc.path, is, tc.wantErr == nil)
+			}
+		})
+	}
+}
+
+func TestStringRetype(t *testing.T) {
+	fixedTime := time.Date(2023, time.September, 18, 7, 45, 0, 0, time.UTC)
+	rfcTime := fixedTime.Format(time.RFC822)
+
+	tests := []struct {
+		name    string
+		typ     string
+		input   string
+		tf      timeFormat
+		want    interface{}
+		wantErr error
+	}{
+		{"string", "string", "hello", timeFormat{}, "hello", nil},
+		{"float ok", "float", "3.14", timeFormat{}, float64(3.14), nil},
+		{"float bad", "float", "foo", timeFormat{}, nil, ErrorNotNumber{Input: "foo"}},
+		{"integer ok", "integer", "42", timeFormat{}, 42, nil},
+		{"integer bad", "integer", "a", timeFormat{}, nil, ErrorNotInteger{Input: "a"}},
+		{"datetime default", "datetime", rfcTime, timeFormat{input: time.RFC822, output: time.RFC822}, rfcTime, nil},
+		{"datetime formats", "datetime", "31.12.2021 23:59", timeFormat{input: "02.01.2006 15:04", output: "2006-01-02/15:04"}, "2021-12-31/23:59", nil},
+		{"datetime bad", "datetime", "nope", timeFormat{input: "02.01.2006", output: "2006-01-02"}, nil, ErrorInvalidDate{Input: "nope", Format: "02.01.2006"}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := stringRetype(tc.typ, tc.input, tc.tf)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("stringRetype(%q, %q) = (%v, %v), want (%v, %v)", tc.typ, tc.input, got, err, tc.want, tc.wantErr)
 			}
 		})
 	}
