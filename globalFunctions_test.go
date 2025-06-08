@@ -260,6 +260,65 @@ func TestRoundN(t *testing.T) {
 	}
 }
 
+func TestItem(t *testing.T) {
+	it, ok := functions["item"].(func(*EnviromentNode, float64, []interface{}) interface{})
+	if !ok {
+		t.Fatalf("item has unexpected type")
+	}
+	en := &EnviromentNode{Enviroment{}, nil}
+
+	tests := []struct {
+		name      string
+		index     float64
+		array     []interface{}
+		useChild  bool
+		want      interface{}
+		wantPanic bool
+	}{
+		{
+			name:  "plain slice",
+			index: 1,
+			array: []interface{}{"a", "b", "c"},
+			want:  "b",
+		},
+		{
+			name:     "result slice",
+			index:    1,
+			array:    []interface{}{"!split", ",", "a,b,c"},
+			useChild: true,
+			want:     "b",
+		},
+		{
+			name:      "non integer index",
+			index:     1.5,
+			array:     []interface{}{"a", "b"},
+			wantPanic: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			itemEnv := en
+			if tc.useChild {
+				itemEnv = en.Child(Enviroment{})
+			}
+			if tc.wantPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("item(%v, %v) did not panic", tc.index, tc.array)
+					}
+				}()
+				it(itemEnv, tc.index, tc.array)
+				return
+			}
+			got := it(itemEnv, tc.index, tc.array)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("item(%v, %v) = %#v, want %#v", tc.index, tc.array, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestStringRetype(t *testing.T) {
 	fixedTime := time.Date(2023, time.September, 18, 7, 45, 0, 0, time.UTC)
 	rfcTime := fixedTime.Format(time.RFC822)
