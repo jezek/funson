@@ -1,10 +1,54 @@
 package funson
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestFun(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   interface{}
+		want    interface{}
+		wantErr error
+	}{
+		{
+			name:    "function slice",
+			input:   []interface{}{"!add", float64(1), float64(2)},
+			want:    float64(3),
+			wantErr: nil,
+		},
+		{
+			name:    "plain values",
+			input:   []interface{}{float64(1), []interface{}{"!add", float64(2), float64(3)}, float64(4)},
+			want:    []interface{}{float64(1), float64(5), float64(4)},
+			wantErr: nil,
+		},
+		{
+			name:    "variadic single",
+			input:   []interface{}{"!not", true},
+			want:    false,
+			wantErr: nil,
+		},
+		{
+			name:    "variadic multiple results",
+			input:   []interface{}{"!not", true, false},
+			want:    Result{false, true},
+			wantErr: fmt.Errorf("multiple values retured: %#v", Result{false, true}),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Fun(tc.input)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("Fun(%v) = (%v, %v), want (%v, %v)", tc.input, got, err, tc.want, tc.wantErr)
+			}
+		})
+	}
+}
 
 func TestIsSliceFunc(t *testing.T) {
 	tests := []struct {
@@ -123,21 +167,18 @@ func TestProcessSliceFunc(t *testing.T) {
 		fname   string
 		args    []interface{}
 		want    interface{}
-		wantErr bool
+		wantErr error
 	}{
-		{"add numbers", "addTest", []interface{}{float64(1), float64(2)}, Result{float64(3)}, false},
-		{"concat", "concatTest", []interface{}{"a", "b", "c"}, Result{"abc"}, false},
-		{"argument type mismatch", "addTest", []interface{}{"foo", float64(2)}, nil, true},
+		{"add numbers", "addTest", []interface{}{float64(1), float64(2)}, Result{float64(3)}, nil},
+		{"concat", "concatTest", []interface{}{"a", "b", "c"}, Result{"abc"}, nil},
+		{"argument type mismatch", "addTest", []interface{}{"foo", float64(2)}, nil, fmt.Errorf("argument %d type missmatch for function %s\ngot %v\nwant %v", 1, "addTest", reflect.TypeOf("foo"), reflect.TypeOf(float64(0)))},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := en.processSliceFunc(tc.fname, tc.args...)
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("processSliceFunc(%q) error = %v, wantErr %v", tc.fname, err, tc.wantErr)
-			}
-			if !tc.wantErr && !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("processSliceFunc(%q) = %#v, want %#v", tc.fname, got, tc.want)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("processSliceFunc(%q, %v) = (%v, %v), want (%v, %v)", tc.fname, tc.args, got, err, tc.want, tc.wantErr)
 			}
 		})
 	}
