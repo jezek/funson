@@ -17,6 +17,27 @@ import (
 // used for variadic function results
 type Result []interface{}
 
+// AddFun error types.
+type ErrorNilFunction struct{}
+
+func (e ErrorNilFunction) Error() string { return "function \"fun\" is nil" }
+
+type ErrorDuplicateFunctionName struct{ Name string }
+
+func (e ErrorDuplicateFunctionName) Error() string {
+	return fmt.Sprintf("duplicate function name: %s", e.Name)
+}
+
+type ErrorNotFunction struct{ Type reflect.Type }
+
+func (e ErrorNotFunction) Error() string { return fmt.Sprintf("not a function: %s", e.Type) }
+
+type ErrorInvalidSignature struct{ Fun interface{} }
+
+func (e ErrorInvalidSignature) Error() string {
+	return fmt.Sprintf("function has to have at least 1 argument and first argument has to be *EnviromentNode type: %#v", e.Fun)
+}
+
 // Adds custom function "fun" to be used as "name" in funson
 // "fun" has to be in format:
 //
@@ -29,19 +50,19 @@ func AddFun(name string, fun interface{}) error {
 	//fmt.Println("addFunc", name)
 	//defer fmt.Println("addFunc", name, "out")
 	if fun == nil {
-		return fmt.Errorf("function \"fun\" is nil")
+		return ErrorNilFunction{}
 	}
 
 	if _, ok := functions[name]; ok {
-		return fmt.Errorf("duplicate function name: %s", name)
+		return ErrorDuplicateFunctionName{Name: name}
 	}
 
 	t := reflect.TypeOf(fun)
 	if t.Kind() != reflect.Func {
-		return fmt.Errorf("not a function: %s", t)
+		return ErrorNotFunction{Type: t}
 	}
 	if t.NumIn() == 0 || t.In(0) != reflect.TypeOf(&EnviromentNode{}) {
-		return fmt.Errorf("function has to have at least 1 argument and first argument has to be *EnviromentNode type: %#v", fun)
+		return ErrorInvalidSignature{Fun: fun}
 	}
 	functions[name] = fun
 	return nil

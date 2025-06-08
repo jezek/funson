@@ -29,35 +29,35 @@ func TestAddFun(t *testing.T) {
 		functions map[string]interface{}
 		funName   string
 		fun       interface{}
-		wantErr   bool
+		wantErr   error
 	}{
 		{
 			name:      "valid function",
 			functions: nil,
 			funName:   "dummy",
 			fun:       dummy,
-			wantErr:   false,
+			wantErr:   nil,
 		},
 		{
 			name:      "nil function",
 			functions: nil,
 			funName:   "nilfun",
 			fun:       nil,
-			wantErr:   true,
+			wantErr:   ErrorNilFunction{},
 		},
 		{
 			name:      "duplicate name",
 			functions: map[string]interface{}{"dup": dummy},
 			funName:   "dup",
 			fun:       other,
-			wantErr:   true,
+			wantErr:   ErrorDuplicateFunctionName{Name: "dup"},
 		},
 		{
 			name:      "non-function value",
 			functions: nil,
 			funName:   "notfun",
 			fun:       123,
-			wantErr:   true,
+			wantErr:   ErrorNotFunction{Type: reflect.TypeOf(123)},
 		},
 	}
 
@@ -71,11 +71,10 @@ func TestAddFun(t *testing.T) {
 			original := copyMap(functions)
 
 			err := AddFun(tc.funName, tc.fun)
-			if (err != nil) != tc.wantErr {
+			if !reflect.DeepEqual(err, tc.wantErr) {
 				t.Fatalf("AddFun(%q) error = %v, wantErr %v", tc.funName, err, tc.wantErr)
 			}
-
-			if tc.wantErr {
+			if tc.wantErr != nil {
 				if len(functions) != len(original) {
 					t.Errorf("functions map size changed on error: got %d want %d", len(functions), len(original))
 				}
