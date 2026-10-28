@@ -64,6 +64,15 @@ func sliceFunc(sf []interface{}) (string, []interface{}) {
 
 }
 
+type ErrorTooManyArguments struct {
+	Name      string
+	Remaining int
+}
+
+func (e ErrorTooManyArguments) Error() string {
+	return fmt.Sprintf("too many arguments for function %s: %d leftover arguments", e.Name, e.Remaining)
+}
+
 func (e *EnviromentNode) processSliceFunc(name string, args ...interface{}) (interface{}, error) {
 	//log.Printf("\nproccessSliceFunc: %s: %v\n", name, args)
 	//log.Printf("processSliceFunc: e: %#v\n", e.Enviroment)
@@ -169,8 +178,9 @@ func (e *EnviromentNode) processSliceFunc(name string, args ...interface{}) (int
 			return nil, fmt.Errorf("variadic argument type missmatch for function %s\ngot %v\nwant %v", name, reflect.TypeOf(ri), vaet)
 		}
 		inputs[i] = inv
+	} else if remaining := len(processedArgs) + len(args); remaining > 0 {
+		return nil, ErrorTooManyArguments{Name: name, Remaining: remaining}
 	}
-	//TODO If function is not variadic, check if here are any leftover arguments and return error if any.
 
 	var resVal []reflect.Value
 	if t.IsVariadic() {

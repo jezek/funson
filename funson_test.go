@@ -148,37 +148,75 @@ func TestProcessSliceFunc(t *testing.T) {
 
 	functions = map[string]interface{}{}
 
+	called := false
 	if err := AddFun("addTest", func(_ *EnviromentNode, a, b float64) float64 {
+		called = true
 		return a + b
 	}); err != nil {
 		t.Fatalf("AddFun(addTest) error = %v", err)
 	}
 
 	if err := AddFun("concatTest", func(_ *EnviromentNode, strs ...string) string {
+		called = true
 		return strings.Join(strs, "")
 	}); err != nil {
 		t.Fatalf("AddFun(concatTest) error = %v", err)
 	}
 
-	en := &EnviromentNode{Enviroment{}, nil}
+	if err := AddFun("noopTest", func(_ *EnviromentNode) {
+		called = true
+	}); err != nil {
+		t.Fatalf("AddFun(noopTest) error = %v", err)
+	}
+
+	if err := AddFun("resultsTest", func(_ *EnviromentNode, values ...float64) Result {
+		results := make(Result, len(values))
+		for i, value := range values {
+			results[i] = value
+		}
+		return results
+	}); err != nil {
+		t.Fatalf("AddFun(resultsTest) error = %v", err)
+	}
+
+	if err := AddFun("stringsTest", func(_ *EnviromentNode) Result {
+		return Result{"a", "b"}
+	}); err != nil {
+		t.Fatalf("AddFun(stringsTest) error = %v", err)
+	}
+
+	en := (&EnviromentNode{Enviroment{}, nil}).Child(Enviroment{})
 
 	tests := []struct {
-		name    string
-		fname   string
-		args    []interface{}
-		want    interface{}
-		wantErr error
+		name       string
+		fname      string
+		args       []interface{}
+		want       interface{}
+		wantErr    error
+		wantCalled bool
 	}{
-		{"add numbers", "addTest", []interface{}{float64(1), float64(2)}, Result{float64(3)}, nil},
-		{"concat", "concatTest", []interface{}{"a", "b", "c"}, Result{"abc"}, nil},
-		{"argument type mismatch", "addTest", []interface{}{"foo", float64(2)}, nil, fmt.Errorf("argument %d type missmatch for function %s\ngot %v\nwant %v", 1, "addTest", reflect.TypeOf("foo"), reflect.TypeOf(float64(0)))},
+		{"add numbers", "addTest", []interface{}{float64(1), float64(2)}, Result{float64(3)}, nil, true},
+		{"extra raw argument", "addTest", []interface{}{float64(1), float64(2), float64(3)}, nil, ErrorTooManyArguments{Name: "addTest", Remaining: 1}, false},
+		{"exact expanded arguments", "addTest", []interface{}{[]interface{}{"!resultsTest", float64(1), float64(2)}}, Result{float64(3)}, nil, true},
+		{"extra expanded argument", "addTest", []interface{}{[]interface{}{"!resultsTest", float64(1), float64(2), float64(3)}}, nil, ErrorTooManyArguments{Name: "addTest", Remaining: 1}, false},
+		{"extra raw and expanded arguments", "addTest", []interface{}{[]interface{}{"!resultsTest", float64(1), float64(2), float64(3)}, float64(4)}, nil, ErrorTooManyArguments{Name: "addTest", Remaining: 2}, false},
+		{"no arguments", "noopTest", nil, Result{}, nil, true},
+		{"extra argument for zero argument function", "noopTest", []interface{}{float64(1)}, nil, ErrorTooManyArguments{Name: "noopTest", Remaining: 1}, false},
+		{"concat", "concatTest", []interface{}{"a", "b", "c"}, Result{"abc"}, nil, true},
+		{"concat expanded arguments", "concatTest", []interface{}{[]interface{}{"!stringsTest"}, "c"}, Result{"abc"}, nil, true},
+		{"concat no arguments", "concatTest", nil, Result{""}, nil, true},
+		{"argument type mismatch", "addTest", []interface{}{"foo", float64(2)}, nil, fmt.Errorf("argument %d type missmatch for function %s\ngot %v\nwant %v", 1, "addTest", reflect.TypeOf("foo"), reflect.TypeOf(float64(0))), false},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			called = false
 			got, err := en.processSliceFunc(tc.fname, tc.args...)
 			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
 				t.Fatalf("processSliceFunc(%q, %v) = (%v, %v), want (%v, %v)", tc.fname, tc.args, got, err, tc.want, tc.wantErr)
+			}
+			if !reflect.DeepEqual(called, tc.wantCalled) {
+				t.Errorf("function called = %v, want %v", called, tc.wantCalled)
 			}
 		})
 	}
