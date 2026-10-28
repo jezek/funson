@@ -1,6 +1,7 @@
 package funson
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -36,7 +37,7 @@ func TestFun(t *testing.T) {
 			name:    "variadic multiple results",
 			input:   []interface{}{"!not", true, false},
 			want:    Result{false, true},
-			wantErr: fmt.Errorf("multiple values retured: %#v", Result{false, true}),
+			wantErr: ErrorMultipleValues{Values: Result{false, true}},
 		},
 	}
 
@@ -217,6 +218,104 @@ func TestProcessSliceFunc(t *testing.T) {
 			}
 			if !reflect.DeepEqual(called, tc.wantCalled) {
 				t.Errorf("function called = %v, want %v", called, tc.wantCalled)
+			}
+		})
+	}
+}
+
+func TestProcess(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       interface{}
+		nested      bool
+		want        interface{}
+		wantErr     error
+		wantMessage string
+	}{
+		{
+			name:  "root single result",
+			input: []interface{}{"!not", true},
+			want:  false,
+		},
+		{
+			name:  "root no results",
+			input: []interface{}{"!comment"},
+		},
+		{
+			name:        "root multiple results",
+			input:       []interface{}{"!not", true, false},
+			want:        Result{false, true},
+			wantErr:     ErrorMultipleValues{Values: Result{false, true}},
+			wantMessage: "multiple values retured: funson.Result{false, true}",
+		},
+		{
+			name:   "nested multiple results",
+			input:  []interface{}{"!not", true, false},
+			nested: true,
+			want:   Result{false, true},
+		},
+		{
+			name:   "nested no results",
+			input:  []interface{}{"!comment"},
+			nested: true,
+			want:   Result{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			en := &EnviromentNode{Enviroment{}, nil}
+			if tc.nested {
+				en = en.Child(Enviroment{})
+			}
+			got, err := en.Process(tc.input)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("Process(%v) = (%v, %v), want (%v, %v)", tc.input, got, err, tc.want, tc.wantErr)
+			}
+			if err != nil && !reflect.DeepEqual(err.Error(), tc.wantMessage) {
+				t.Errorf("error message = %q, want %q", err.Error(), tc.wantMessage)
+			}
+		})
+	}
+}
+
+func TestMapErrors(t *testing.T) {
+	cause := ErrorNoPath{Key: "name", Val: float64(1)}
+	tests := []struct {
+		name    string
+		err     error
+		want    string
+		wantErr error
+	}{
+		{
+			name:    "resolve function name",
+			err:     ErrorResolveFunctionName{Err: cause},
+			want:    "unable to resolve function name: " + cause.Error(),
+			wantErr: cause,
+		},
+		{
+			name: "empty function name",
+			err:  ErrorInvalidFunctionName{Name: ""},
+			want: "function name is empty or not string: \"\"",
+		},
+		{
+			name: "non-string function name",
+			err:  ErrorInvalidFunctionName{Name: float64(42)},
+			want: "function name is empty or not string: 42",
+		},
+		{
+			name:    "resolve map value",
+			err:     ErrorResolveMapValue{Key: "item", Err: cause},
+			want:    "unable to resolve value for key \"item\": " + cause.Error(),
+			wantErr: cause,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.err.Error(), errors.Unwrap(tc.err)
+			if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(err, tc.wantErr) {
+				t.Fatalf("error message and cause = (%q, %v), want (%q, %v)", got, err, tc.want, tc.wantErr)
 			}
 		})
 	}

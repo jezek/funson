@@ -230,6 +230,14 @@ func (e *EnviromentNode) processSlice(in []interface{}) (interface{}, error) {
 	return out, nil
 }
 
+type ErrorMultipleValues struct {
+	Values Result
+}
+
+func (e ErrorMultipleValues) Error() string {
+	return fmt.Sprintf("multiple values retured: %#v", e.Values)
+}
+
 func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 	//log.Printf("process: type: %s", reflect.TypeOf(in))
 	switch typedIn := in.(type) {
@@ -260,8 +268,7 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 				return nil, nil
 			}
 			if len(fr) > 1 {
-				//TODO structured error
-				return fr, fmt.Errorf("multiple values retured: %#v", fr)
+				return fr, ErrorMultipleValues{Values: fr}
 			}
 			return fr[0], nil
 		}
@@ -282,6 +289,36 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 	return in, nil
 }
 
+// Error types for the map processing draft below.
+type ErrorResolveFunctionName struct {
+	Err error
+}
+
+func (e ErrorResolveFunctionName) Error() string {
+	return fmt.Sprintf("unable to resolve function name: %s", e.Err)
+}
+
+func (e ErrorResolveFunctionName) Unwrap() error { return e.Err }
+
+type ErrorInvalidFunctionName struct {
+	Name interface{}
+}
+
+func (e ErrorInvalidFunctionName) Error() string {
+	return fmt.Sprintf("function name is empty or not string: %#v", e.Name)
+}
+
+type ErrorResolveMapValue struct {
+	Key string
+	Err error
+}
+
+func (e ErrorResolveMapValue) Error() string {
+	return fmt.Sprintf("unable to resolve value for key \"%s\": %s", e.Key, e.Err)
+}
+
+func (e ErrorResolveMapValue) Unwrap() error { return e.Err }
+
 //func runMap(env Enviroment, in map[string]interface{}) (interface{}, error) {
 //	if len(in) == 0 {
 //		return map[string]interface{}{}, nil
@@ -289,13 +326,11 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 //	if fnameUntyped, ok := in["!"]; ok == true {
 //		fnameUntyped, err := run(env, fnameUntyped)
 //		if err != nil {
-//			//TODO structured error
-//			return nil, fmt.Errorf("unable to resolve function name: %s", err)
+//			return nil, ErrorResolveFunctionName{Err: err}
 //		}
 //		fname, ok := fnameUntyped.(string)
 //		if fname == "" || !ok {
-//			//TODO structured error
-//			return nil, fmt.Errorf("function name is empty or not string: %#v", fname)
+//			return nil, ErrorInvalidFunctionName{Name: fnameUntyped}
 //		}
 //
 //		return "implement map function: " + fname, nil
@@ -304,8 +339,7 @@ func (e *EnviromentNode) Process(in interface{}) (interface{}, error) {
 //	for k, v := range in {
 //		value, err := run(env, v)
 //		if err != nil {
-//			//TODO structured error
-//			return nil, fmt.Errorf("unable to resolve value for key \"%s\": %s", k, err)
+//			return nil, ErrorResolveMapValue{Key: k, Err: err}
 //		}
 //		out[k] = value
 //	}
